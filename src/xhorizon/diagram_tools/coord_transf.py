@@ -32,6 +32,7 @@ Obtained from region coords by transformations U(udl) and V(vdl).
 
 
 import numpy as np
+import scipy.integrate as integrate
 
 
 
@@ -58,15 +59,16 @@ def r_of_uv(uv, Finv, c):
 
 
 ## block to region transformations
-
+#TYPE-I transforamtion
 def uvdl_of_uv(uv, cdlu, cdlv, epsu, epsv, kpm, s0):
-	h = lambda s: hks(s, kpm, s0)
 	u, v = uv
-	udl = np.pi**(-1) * np.arctan(  epsu * h( u/2.) ) + cdlu
-	vdl = np.pi**(-1) * np.arctan( -epsv * h(-v/2.) ) + cdlv
+	##define the transformation in integration form for u
+	udl = dl_int_trans(u,-np.inf,kpm) + cdlu
+	##define the transformation in integration form for v
+	vdl = dl_int_trans(v,+np.inf,kpm) + cdlv
 	uvdl = np.array([udl,vdl])
 	return uvdl
-
+#original package inverse transformation
 def uv_of_uvdl(uvdl, cdlu, cdlv, epsu, epsv, kpm, s0):
 	hinv = lambda s: hksinv(s, kpm, s0)
 	udl, vdl = uvdl
@@ -81,9 +83,25 @@ def uv_of_uvdl(uvdl, cdlu, cdlv, epsu, epsv, kpm, s0):
 
 
 
+#New functions
+# Define the integrand of the type-I chart
+#please be careful I define the surface gravity in my work
+#without any signs but I will keep the signs in that case to align with 
+def integrand(xx,kpm):
+    ## get k_+ and k_- values
+    km,kp=np.min(kpm),np.max(kpm)
+    return 1/(np.exp(xx / kp) + np.exp(xx / km))
 
+def dl_int_trans(y,low_bound,kpm):
+    # Initialize ydl
+    ydl = []
+    # Compute the integrals for each element in y for the low_bound provided
+    for y_val in y:
+        ydl_results, Int_err_ydl = integrate.quad(integrand,low_bound, y_val,args=(kpm))
+        ydl.append(ydl_results)
+    return np.array(ydl)
 
-
+ 
 
 ## supplementary functions
 
